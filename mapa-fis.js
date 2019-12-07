@@ -1,9 +1,10 @@
 var geojson;
 var map;
-var popupsMarkers = [];
+var arrayMarkers = [];
 var currentMarker;
-var flag = false;
-
+var size = 200;
+var flagLayer;
+var selectTag;
 jQuery(document).ready(function() {
   mapboxgl.accessToken =
     "pk.eyJ1IjoiYWxleGFyZXZhbG85IiwiYSI6ImNqenNqZTFjNTAydDIzbW54bXZvMHpjYmsifQ._GESnmG3HCwGT5thJrIyWw";
@@ -595,6 +596,10 @@ jQuery(document).ready(function() {
       }
     ]
   };
+
+  hiddenBox();
+  selectTag = document.getElementById("selectTag");
+
   // add markers to map
   geojson.features.forEach(function(marker, i) {
     // create a HTML element for each feature
@@ -602,23 +607,84 @@ jQuery(document).ready(function() {
     el.className = "marker";
 
     // make a marker for each feature and add to the map
-    popupsMarkers[i] = new mapboxgl.Marker(el)
-      .setLngLat(marker.geometry.coordinates)
-      .addTo(map);
+    new mapboxgl.Marker(el).setLngLat(marker.geometry.coordinates).addTo(map);
 
     el.addEventListener("click", function() {
+      //console.log(el);
       var nameBox = document.getElementById("name-bar-box");
       nameBox.innerHTML = marker.properties.title;
       var areaBox = document.getElementById("area-box");
-      areaBox.innerHTML = '<p align="justify">' + marker.properties.description + "</p>";
+      areaBox.innerHTML =
+        '<p align="justify">' + marker.properties.description + "</p>";
+      addAnimatedIcon(marker);
+      showBox();
+    });
+
+    arrayMarkers[i] = marker;
+
+    //Create Option Items
+    var opctionTag = document.createElement("option");
+    opctionTag.setAttribute("value", i);
+    opctionTag.innerHTML = marker.properties.title;
+    selectTag.appendChild(opctionTag);
+
+    //Add event listener to Select Tag
+    selectTag.addEventListener("change", function() {
+      var selectedOption = this.options[selectTag.selectedIndex];
+      flyToCoordinates(arrayMarkers[selectedOption.value].geometry.coordinates);
+      var nameBox = document.getElementById("name-bar-box");
+      nameBox.innerHTML = arrayMarkers[selectedOption.value].properties.title;
+      var areaBox = document.getElementById("area-box");
+      areaBox.innerHTML = '<p align="justify">' + arrayMarkers[selectedOption.value].properties.description + "</p>";
+      addAnimatedIcon(arrayMarkers[selectedOption.value]);
       showBox();
     });
   });
-  hiddenBox();
-  //loadSelect();
 });
 
+function addAnimatedIcon(marker) {
+  removeIconLayer(marker);
+  map.addImage(marker.properties.title, pulsingDot, { pixelRatio: 2 });
+  map.addLayer({
+    id: marker.properties.title,
+    type: "symbol",
+    source: {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: marker.geometry.coordinates
+            }
+          }
+        ]
+      }
+    },
+    layout: {
+      "icon-image": marker.properties.title
+    }
+  });
+}
+
+function removeIconLayer(marker) {
+  if (flagLayer != null) {
+    map.removeLayer(flagLayer);
+    map.removeImage(flagLayer);
+    map.removeSource(flagLayer);
+    flagLayer = null;
+  }
+  
+  if(marker != null){
+    flagLayer = marker.properties.title;
+  }
+  
+}
+
 function hiddenBox() {
+  removeIconLayer(null);
   $("#right")
     .children(".box-slide")
     .stop()
@@ -633,44 +699,56 @@ function showBox() {
 
   if (document.getElementById("map-box").style.display != "block") {
     document.getElementById("map-box").style.display = "block";
-    console.log("show");
   }
+}
+
+function flyToCoordinates(latLag) {
+  map.flyTo({
+    center: latLag,
+    zoom: 14
+  });
 }
 
 /*
-function loadSelect() {
-  var selectTag = document.getElementById("selectTag");
+ *    Title: Add an animated icon to the map
+ *    Author: mapbox
+ *    Availability: https://docs.mapbox.com/mapbox-gl-js/example/add-image-animated/
+ */
+var pulsingDot = {
+  width: size,
+  height: size,
+  data: new Uint8Array(size * size * 4),
 
-  for (var i = 0; i < geojson["features"].length; i++) {
-    var opctionTag = document.createElement("option");
-    opctionTag.setAttribute("value", i);
-    opctionTag.innerHTML = geojson["features"][i]["properties"]["title"];
-    selectTag.appendChild(opctionTag);
+  // get rendering context for the map canvas when layer is added to the map
+  onAdd: function() {
+    var canvas = document.createElement("canvas");
+    canvas.width = this.width;
+    canvas.height = this.height;
+    this.context = canvas.getContext("2d");
+  },
+
+  // called once before every frame where the icon will be used
+  render: function() {
+    var duration = 1000;
+    var t = (performance.now() % duration) / duration;
+
+    var radius = (size / 2) * 0.3;
+    var outerRadius = (size / 2) * 0.7 * t + radius;
+    var context = this.context;
+
+    // draw outer circle
+    context.clearRect(0, 0, this.width, this.height);
+    context.beginPath();
+    context.arc(this.width / 2, this.height / 2, outerRadius, 0, Math.PI * 2);
+    context.fillStyle = "rgba(255, 150, 150," + (1 - t) + ")";
+    context.fill();
+    // update this image's data with data from the canvas
+    this.data = context.getImageData(0, 0, this.width, this.height).data;
+
+    // continuously repaint the map, resulting in the smooth animation of the dot
+    map.triggerRepaint();
+
+    // return `true` to let the map know that the image was updated
+    return true;
   }
-
-  selectTag.addEventListener("change", function() {
-    var selectedOption = this.options[selectTag.selectedIndex];
-    searchCoordinates(
-      geojson["features"][selectedOption.value]["geometry"]["coordinates"],
-      selectedOption.value
-    );
-  });
-}
-
-function searchCoordinates(latLag, value) {
-  map.flyTo({
-    center: latLag,
-    zoom: 10
-  });
-
-  if (flag == true) {
-    popupsMarkers[currentMarker].getPopup().remove();
-    flag = false;
-  }
-
-  currentMarker = value;
-  flag = true;
-
-  popupsMarkers[value].togglePopup();
-}
-*/
+};
