@@ -32,7 +32,7 @@ body {
   background-color: #eeeeee;
   position: absolute;
   overflow-y: auto;
-  display:none
+  display:none;
 }
 
 .bar-box {
@@ -82,4 +82,13 @@ body {
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(110, 109, 109);
+}
+
+/*Mapbox logo and attribute*/
+.mapboxgl-ctrl-logo{
+  margin-left: 15px !important;
+}
+
+.mapboxgl-ctrl-attrib-inner{
+  margin-right: 15px !important;
 }
