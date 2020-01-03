@@ -13,6 +13,10 @@ var arrayStudents = [];
 var arrayIAreas = [];
 var resultCountries;
 var resultStudent;
+var resultIAreas;
+var flagStudent = false;
+var flagCountry = false;
+var flagIArea = false;
 
 jQuery(document).ready(function() {
   mapboxgl.accessToken = "pk.eyJ1IjoiYWxleGFyZXZhbG85IiwiYSI6ImNqenNqZTFjNTAydDIzbW54bXZvMHpjYmsifQ._GESnmG3HCwGT5thJrIyWw";
@@ -22,7 +26,7 @@ jQuery(document).ready(function() {
     center: [-96, 37.8],
     zoom: 1
   });
-
+  
   fetch("datos.json").then(response => response.json()).then(json => {
       geojson = json;
       hiddenBox();
@@ -65,45 +69,57 @@ jQuery(document).ready(function() {
         
       });
 
-      fillSelects(arrayCountries, arrayStudents, arrayIAreas)
+      fillSelects(true, true, true)
       addSelectListener(geojson);
     });
 });
 
-function fillSelects(arrayCountries, arrayStudents, arrayIAreas){
+function fillSelects(flagCountry, flagStudent, flagArea){
 
-  var filterCountries = arrayCountries.filter((value, index, self) => self.indexOf(value) === index);
-  filterCountries = filterCountries.sort();
 
-  var filterStudents = arrayStudents.filter((value, index, self) => self.indexOf(value) === index);
-  filterStudents = filterStudents.sort();
+  if(flagCountry == true){
+    cleanselectCountry();
+    var filterCountries = arrayCountries.filter((value, index, self) => self.indexOf(value) === index);
+    filterCountries = filterCountries.sort();
 
-  var filterIAreas = arrayIAreas.filter((value, index, self) => self.indexOf(value) === index);
-  filterIAreas = filterIAreas.sort();
+    filterCountries.forEach(function(country, i) {
+      
+      //Create Option Items Country
+      var optionCountry = document.createElement("option");
+      optionCountry.setAttribute("value", i);
+      optionCountry.innerHTML = country;
+      selectCountry.appendChild(optionCountry);
+    });
+  
+  }
 
-  filterCountries.forEach(function(country, i) {
-    //Create Option Items Country
-    var optionCountry = document.createElement("option");
-    optionCountry.setAttribute("value", i);
-    optionCountry.innerHTML = country;
-    selectCountry.appendChild(optionCountry);
-  });
+  if(flagStudent == true){
+    cleanselectStudent();
+    var filterStudents = arrayStudents.filter((value, index, self) => self.indexOf(value) === index);
+    filterStudents = filterStudents.sort();
 
-  filterStudents.forEach(function(student, i) {
-    //Create Option Items Student
-    var optionStudent = document.createElement("option");
-    optionStudent.setAttribute("value", i);
-    optionStudent.innerHTML = student;
-    selectStudent.appendChild(optionStudent);
-  });
+    filterStudents.forEach(function(student, i) {
+      //Create Option Items Student
+      var optionStudent = document.createElement("option");
+      optionStudent.setAttribute("value", i);
+      optionStudent.innerHTML = student;
+      selectStudent.appendChild(optionStudent);
+    });
+  }
 
-  filterIAreas.forEach(function(area, i) {
-    //Create Option Items IArea
-    var opctionIArea = document.createElement("option");
-    opctionIArea.setAttribute("value", i);
-    opctionIArea.innerHTML = area;
-    selectIArea.appendChild(opctionIArea);
-  });
+  if(flagArea == true){
+    cleanselectIArea();
+    var filterIAreas = arrayIAreas.filter((value, index, self) => self.indexOf(value) === index);
+    filterIAreas = filterIAreas.sort();
+
+    filterIAreas.forEach(function(area, i) {
+      //Create Option Items IArea
+      var opctionIArea = document.createElement("option");
+      opctionIArea.setAttribute("value", i);
+      opctionIArea.innerHTML = area;
+      selectIArea.appendChild(opctionIArea);
+    });
+  }  
 }
 
 function addSelectListener(geojson){
@@ -111,17 +127,30 @@ function addSelectListener(geojson){
     var selectedOptionCountry = selectCountry.options[selectCountry.selectedIndex].text;
     searchPublicationCountry(geojson, selectedOptionCountry);
     showSelectResult();
+    flagCountry = true;
+    flagStudent = false;
+    flagIArea = false;
+    fillSelects(false, true, true);
   });
 
   selectStudent.addEventListener("change", function() {
     var selectedOptionStudent = selectStudent.options[selectStudent.selectedIndex].text;
     searchPublicationStudent(geojson, selectedOptionStudent);
     showSelectResult();
+    flagStudent = true;
+    flagCountry = false;
+    flagIArea = false;
+    fillSelects(true, false, true);
   });
 
   selectIArea.addEventListener("change", function() {
     var selectedOptionArea = selectIArea.options[selectIArea.selectedIndex].text;
+    searchPublicationAreas(geojson, selectedOptionArea);
     showSelectResult();
+    flagIArea = true;
+    flagStudent = false;
+    flagCountry = false;
+    fillSelects(true, true, false);
   });
 
   result.addEventListener("change", function() {
@@ -132,15 +161,24 @@ function addSelectListener(geojson){
 function goToResult(){
   var selectedOption = result.options[result.selectedIndex];
 
-  if(resultCountries != []){
+  if(flagCountry == true && flagStudent == false && flagIArea == false){
     flyToCoordinates(resultCountries[selectedOption.value].geometry.coordinates);
     addDescriptionPublication(selectedOption, resultCountries)
     addAnimatedIcon(resultCountries[selectedOption.value]);
     showBox();
-  }else if(resultStudent != []){
+  }
+  
+  if(flagStudent == true && flagCountry == false && flagIArea == false){
     flyToCoordinates(resultStudent[selectedOption.value].geometry.coordinates);
     addDescriptionPublication(selectedOption, resultStudent)
     addAnimatedIcon(resultStudent[selectedOption.value]);
+    showBox();
+  }
+
+  if(flagIArea == true && flagStudent == false && flagCountry == false){
+    flyToCoordinates(resultIAreas[selectedOption.value].geometry.coordinates);
+    addDescriptionPublication(selectedOption, resultIAreas)
+    addAnimatedIcon(resultIAreas[selectedOption.value]);
     showBox();
   }
   
@@ -155,7 +193,7 @@ function searchPublicationCountry(geojson, country){
     var opctionIArea = document.createElement("option");
     opctionIArea.setAttribute("value", i);
     opctionIArea.setAttribute("class", "res-option");
-    opctionIArea.innerHTML = res.properties.DoctoralStudent;
+    opctionIArea.innerHTML = res.properties.DoctoralStudent +"-"+ res.properties.ResearchAreas;
     result.appendChild(opctionIArea); 
   });
 }
@@ -163,8 +201,20 @@ function searchPublicationCountry(geojson, country){
 function searchPublicationStudent(geojson, student){
   cleanSelect();
   resultStudent = geojson.features.filter(json => json.properties.DoctoralStudent == student);
-  
   resultStudent.forEach(function(res, i) {
+    //Create Option Items IArea
+    var opctionIArea = document.createElement("option");
+    opctionIArea.setAttribute("value", i);
+    opctionIArea.setAttribute("class", "res-option");
+    opctionIArea.innerHTML = res.properties.DoctoralStudent +"-"+ res.properties.ResearchAreas;
+    result.appendChild(opctionIArea); 
+  });
+}
+
+function searchPublicationAreas(geojson, areas){
+  cleanSelect();
+  resultIAreas = geojson.features.filter(json => json.properties.ResearchAreas == areas);
+  resultIAreas.forEach(function(res, i) {
     //Create Option Items IArea
     var opctionIArea = document.createElement("option");
     opctionIArea.setAttribute("value", i);
@@ -173,6 +223,7 @@ function searchPublicationStudent(geojson, student){
     result.appendChild(opctionIArea); 
   });
 }
+
 
 function showSelectResult(){
   document.getElementById('resultado').style.display = "inline";
@@ -188,6 +239,42 @@ function cleanSelect(){
   opctionIArea.setAttribute("hidden","");
   opctionIArea.innerHTML = "Resultado";
   result.appendChild(opctionIArea); 
+}
+
+function cleanselectCountry(){
+  for (let i = selectCountry.options.length; i >= 0; i--) {
+    selectCountry.remove(i);
+  }
+  var opctionIArea = document.createElement("option");
+  opctionIArea.setAttribute("selected","");
+  opctionIArea.setAttribute("disabled","");
+  opctionIArea.setAttribute("hidden","");
+  opctionIArea.innerHTML = "País";
+  selectCountry.appendChild(opctionIArea); 
+}
+
+function cleanselectStudent(){
+  for (let i = selectStudent.options.length; i >= 0; i--) {
+    selectStudent.remove(i);
+  }
+  var opctionIArea = document.createElement("option");
+  opctionIArea.setAttribute("selected","");
+  opctionIArea.setAttribute("disabled","");
+  opctionIArea.setAttribute("hidden","");
+  opctionIArea.innerHTML = "Doctoral Student";
+  selectStudent.appendChild(opctionIArea); 
+}
+
+function cleanselectIArea(){
+  for (let i = selectIArea.options.length; i >= 0; i--) {
+    selectIArea.remove(i);
+  }
+  var opctionIArea = document.createElement("option");
+  opctionIArea.setAttribute("selected","");
+  opctionIArea.setAttribute("disabled","");
+  opctionIArea.setAttribute("hidden","");
+  opctionIArea.innerHTML = "Área de Investigación";
+  selectIArea.appendChild(opctionIArea); 
 }
 
 function addDescriptionPublicationListener(marker){
