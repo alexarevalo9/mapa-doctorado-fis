@@ -6,8 +6,8 @@
 .marker {
   background-image: url("/marker/buhopoli.png");
   background-size: cover;
-  width: 30px;
-  height: 30px;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
 }
 
@@ -41,7 +41,7 @@ body {
 }
 .bar-box img {
   position: absolute;
-  width: 17px;
+  width: 16px;
   top: 32%;
   margin-left: 15px;
   cursor: pointer;
@@ -60,6 +60,25 @@ body {
   width: 270px;
   margin-left: 15px;
   font-size: 14px;
+}
+
+.element-title{
+  color: #8d8d8d;
+  margin: 3px 0;
+}
+
+#name-bar-box{
+  font-size: 15px;
+}
+
+#resultado{
+  display: none;
+  background-color: #0ee770;
+  color: black;
+}
+
+.res-option{
+  background-color: white;
 }
 
 /*Styles of Scrollbar*/
